@@ -1,0 +1,242 @@
+#include <ArduinoJson.h>
+#include <ArduinoJson.hpp>
+
+#include <PubSubClient.h>
+
+#include <WiFi.h>
+ 
+#include <SPI.h>
+#include <MFRC522.h>
+ 
+//MFRC522 RFID 5,illetve 22-es GPIO lábak használata a mikrokontroller összeköttetéshez
+#define SS_PIN 5 //SS PIN
+#define RST_PIN 22
+
+//Berregőhöz a 2-es GPIO lábat használom
+#define BUZZER_PIN 2
+
+//A reléhez a 25-ös GPIO lábat használom
+#define RELAY_PIN 25
+
+#define DeviceId 1 //Eszköz azonosító megadása, hogy azonosítható legyen az eszköz.
+//Wi-Fi kapcsolathoz a hitelesítési adatok beállítása
+const char* ssid = "Carel324";
+const char* password = "Klicsko2020";
+
+//MQTT Broker szerverhez szükséges csatlakozási,hitelesítési adatok
+const char* mqtt_server = "192.168.0.75";
+const char* mqtt_user = "listener";
+const char* mqtt_password = "1234";
+
+//Létrehozzuk a WifiClient típusú objektumot
+WiFiClient espClient;
+
+//Létrehozzuk a PubSubClient típusú objektumot, majd átadom a client konstruktorának az espClient objektumot.
+PubSubClient client(espClient);
+
+//Mozgásérzékelőhöz a 34-es GPIO lábat hasznlom.
+#define PIR_PIN 34
+
+MFRC522 mfrc522(SS_PIN, RST_PIN);   // MFRC522 típusú objektum létrehozása.
+
+//Segédváltozók
+int Disarmed = true; //Állapot ellenőrzéshez
+int MotionDetected = 0; //Mozgásérzékeléshez
+bool MQTTSent = false; //Ha még nem lett a topicre kiküldve, hogy mozgás történt.
+
+//Topic-ok
+char armingTopic[50];
+char UserActivityLogTopic[50];
+char statusTopic[50];
+char UserAccessCheckerTopic[50];
+char UserPermissionCheckerTopic[50];
+
+
+ 
+void setup() 
+{
+  pinMode(BUZZER_PIN, OUTPUT); //Beállítom a lábat kimeneti módra.
+  pinMode(RELAY_PIN, OUTPUT); //Beállítom a lábat kimeneti módra.
+  pinMode(PIR_PIN, INPUT); //Beállítom a lábat bemeneti módra.
+  Serial.begin(9600);   //Soros kommunikációhoz az adatátviteli sebességet 9600 baud-ra állítom.
+  SPI.begin();      // SPI kommunikáció elindítása.
+  mfrc522.PCD_Init();   // MFRC522 Inicializálása.
+  Serial.println("Az RFID olvasó készen áll!");
+  Serial.println();
+
+  //Átadom a DeviceId-t a topicokhoz
+  sprintf(armingTopic, "/status/arming/%d", DeviceId);
+  sprintf(statusTopic, "/status/device/%d", DeviceId);
+  sprintf(UserAccessCheckerTopic, "/user/permission_state/%d", DeviceId);
+  sprintf(UserPermissionCheckerTopic, "/user/permission_check/%d", DeviceId);
+  
+
+  WiFi.mode(WIFI_STA); //Wi-Fi kliensként való beállítás.
+  WiFi.begin(ssid, password); //Átadom az SSID és a password konstanst.
+  Serial.print("Kapcsolódás a Wi-Fi hálózathoz...");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  
+  Serial.println("\nKapcsolat létrejött!");
+  Serial.print("IP cím: ");
+  Serial.println(WiFi.localIP());     // IP cím kiíratása
+  client.setServer(mqtt_server, 1883); //Kapcsolat felépítése az MQTT Broker szerverrel.
+  client.setCallback(callback);  //Ez az alapértelmezett függvény, amikor üzenetet fogad és fel kell azt dolgozni.
+}
+
+void callback(char* topic, byte* payload, unsigned int length) { //Függvény, amely feldolgozza az MQTT Broker felől érkező üzeneteket.
+ Serial.print("Üzenet érkezett: [");
+ Serial.print(topic);
+ Serial.print("] ");
+
+  //Ha az MQTT Broker szervertől azt kapta, hogy élesíteni vagy hatástalanítani kell a riasztórendszert. 
+ if (strcmp(topic, armingTopic) == 0) {
+    StaticJsonDocument<200> doc;
+    DeserializationError error = deserializeJson(doc, payload, length);
+    if (error) {
+    Serial.println("JSON hiba");
+    return;
+    }
+
+    if(doc["isAuthorized"] == true){
+      if (doc["action"] == "arm") {
+      setArm(doc["userid"]); //Élesítés
+      }
+      else if (doc["action"] == "disarm") {
+      disarm(doc["userid"]); //Hatástalanítás
+      }
+    }
+    else{
+      Serial.println("Nincs jogosúltság!");
+    }
+ }
+ }
+void setArm(int userid){
+  //Hangjelzések leadása
+  unsigned long startTime = millis(); //Aktuális idő.
+  while (millis() - startTime < 5000) { //Késleltetve élesítés
+   digitalWrite(BUZZER_PIN, HIGH);  // Bekapcsolja a buzzert
+    delay(500);  // 500 ms (fél másodperc)
+    digitalWrite(BUZZER_PIN, LOW);   // Kikapcsolja a buzzert
+    delay(500);  // 500 ms (fél másodperc)
+  }
+  Disarmed = false; //Mivel élesítettük ezért a Disarmed logikai változót false-ra állítom.
+   StaticJsonDocument<200> doc;
+  doc["action"] = "armed";
+  doc["user"] = userid;
+  doc["location"] = "Bejárat";
+  char jsonBuffer[512];
+  serializeJson(doc, jsonBuffer);
+  FuncUserActivityLogTopic(jsonBuffer); //Logoljuk az MQTT Broker felé, hogy élesítés megtörtént.
+  
+}
+void FuncUserActivityLogTopic(String JsonData){
+client.publish("/UserActivityLog", JsonData.c_str());
+}
+void reconnect() {
+ while (!client.connected()) {
+   Serial.print("Kapcsolat kiépítése az MQTT Broker szerverrel...");
+   String clientId = "ESP32Client-";
+   clientId += String(random(0xffff), HEX);
+   if (client.connect(clientId.c_str(),mqtt_user, mqtt_password)) {
+     Serial.println("Csatlakozva");
+     client.publish(statusTopic, "Online");
+     client.subscribe(armingTopic);
+     client.subscribe(UserAccessCheckerTopic);
+   } else {
+     Serial.print("failed, rc=");
+     Serial.print(client.state());
+     Serial.println(" try again in 5 seconds");
+     delay(5000);
+   }}
+}
+
+void loop() 
+{
+  if (!client.connected()) { //Ha a kliensünk nem csatlakozott, akkor újracsatlakoztatjuk.
+   reconnect();
+ }
+ client.loop();
+
+  handleMotionDetectorModule();
+  // Új kártya keresése
+  if ( ! mfrc522.PICC_IsNewCardPresent()) 
+  {
+    return;
+  }
+  // Kártya UID olvasása.
+  if ( ! mfrc522.PICC_ReadCardSerial()) //Ha nem sikerült kiolvasni a kártya UID-ját.
+  {
+    return;
+  }
+  //UID tag
+  Serial.print("UID tag :");
+  String content= "";
+  byte letter;
+  for (byte i = 0; i < mfrc522.uid.size; i++) 
+  {
+     Serial.print(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " ");
+     Serial.print(mfrc522.uid.uidByte[i], HEX);
+     content.concat(String(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " "));
+     content.concat(String(mfrc522.uid.uidByte[i], HEX));
+  }
+  Serial.println();
+  content.toUpperCase();
+  checkForUID(content.substring(1));
+} 
+
+void checkForUID(String uid){
+
+ StaticJsonDocument<200> doc;
+    doc["action"] = "disarm";
+    doc["carduid"] = uid;
+     char jsonBuffer[512];
+    serializeJson(doc, jsonBuffer);
+    client.publish(UserPermissionCheckerTopic, jsonBuffer);
+    delay(1000);
+}
+void handleMotionDetectorModule(){
+  if (digitalRead(PIR_PIN) == HIGH && Disarmed == false) {
+    MotionDetected = 1;
+    if(!MQTTSent){
+      StaticJsonDocument<200> doc;
+    doc["alarm"] = "1";
+    doc["deviceId"] = DeviceId;
+    doc["location"] = "Bejárat";
+     char jsonBuffer[512];
+    serializeJson(doc, jsonBuffer);
+      client.publish("/room/motion", jsonBuffer); //Logoljuk a mozgást az MQTT Broker felé.
+    }
+    MQTTSent = true;
+  }
+  if(MotionDetected){
+    digitalWrite(BUZZER_PIN, HIGH);
+    digitalWrite(RELAY_PIN, HIGH);
+    delay(1000);
+    digitalWrite(BUZZER_PIN, LOW);
+  }
+}
+
+void disarm(int uid){
+    Serial.println("Hozzáférés megadva.");
+    Disarmed = true;
+    MotionDetected = 0;
+    MQTTSent = false;
+    for(int i=0;i<2;i++){ //2DB pittyenés kiadása
+    digitalWrite(BUZZER_PIN, HIGH);  // Bekapcsolja a buzzert
+    delay(100);  // 500 ms (fél másodperc)
+    digitalWrite(BUZZER_PIN, LOW);   // Kikapcsolja a buzzert
+    delay(100);  // 500 ms (fél másodperc)
+    }
+    Serial.println();
+    StaticJsonDocument<200> doc;
+    doc["user"] = uid;
+    doc["action"] = "disarmed";
+    doc["location"] = "Bejárat";
+
+     char jsonBuffer[512];
+    serializeJson(doc, jsonBuffer);
+    FuncUserActivityLogTopic(jsonBuffer); //Logoljuk az MQTT Broker felé, hogy a hatástalanítás megtörtént.
+}
