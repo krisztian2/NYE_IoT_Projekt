@@ -20,13 +20,13 @@
 
 #define DeviceId 1 //Eszköz azonosító megadása, hogy azonosítható legyen az eszköz.
 //Wi-Fi kapcsolathoz a hitelesítési adatok beállítása
-const char* ssid = "Carel324";
-const char* password = "Klicsko2020";
+const char* ssid = "ssid";
+const char* password = "jelszó";
 
 //MQTT Broker szerverhez szükséges csatlakozási,hitelesítési adatok
-const char* mqtt_server = "192.168.0.75";
-const char* mqtt_user = "listener";
-const char* mqtt_password = "1234";
+const char* mqtt_server = "ipcím";
+const char* mqtt_user = "felhasználónév";
+const char* mqtt_password = "jelszó";
 
 //Létrehozzuk a WifiClient típusú objektumot
 WiFiClient espClient;
