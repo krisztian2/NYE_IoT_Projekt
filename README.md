@@ -14,6 +14,6 @@ Mozgásérzékelővel vezérelt relé, RFID azonosítással
 
 ## Csapattagok és szerepük a projektben
 
-Ádám Krisztián Sándor - eszközök megrendelése, eszközépítése, program írása, eszköz üzembe helyezése, képek/videó készítés
-Battai István - eszközök kiválasztása, eszközök megrendelése, eszközépítése, eszköz üzembe helyezése, dokumentáció
-Fekete Dávid - eszközök megrendelése, eszköz építése, eszköz üzembe helyezése, prezentáció készítése
+**Ádám Krisztián Sándor** - eszközök megrendelése, eszközépítése, program írása, eszköz üzembe helyezése, képek/videó készítés
+**Battai István** - eszközök kiválasztása, eszközök megrendelése, eszközépítése, eszköz üzembe helyezése, dokumentáció
+**Fekete Dávid** - eszközök megrendelése, eszköz építése, eszköz üzembe helyezése, prezentáció készítése
