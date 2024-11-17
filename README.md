@@ -17,3 +17,6 @@ Mozgásérzékelővel vezérelt relé, RFID azonosítással
 **Ádám Krisztián Sándor** - eszközök megrendelése, eszközépítése, program írása, eszköz üzembe helyezése, képek/videó készítés<br />
 **Battai István** - eszközök kiválasztása, eszközök megrendelése, eszközépítése, eszköz üzembe helyezése, dokumentáció<br />
 **Fekete Dávid** - eszközök megrendelése, eszköz építése, eszköz üzembe helyezése, prezentáció készítése<br />
+
+Node-Redben a Flow a következő:
+![image](https://github.com/user-attachments/assets/26e93da7-75eb-4b37-96cf-60df83db14b2)
