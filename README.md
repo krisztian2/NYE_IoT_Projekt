@@ -26,4 +26,4 @@ Mozgásérzékelővel vezérelt relé, RFID azonosítással
 
 ## Videós bemutató
 
-([https://youtu.be/AsNTdd_-nfs?si=w04yBHiG4SYWsawd ](https://youtu.be/AsNTdd_-nfs?si=w04yBHiG4SYWsawd "Videó")
+[https://youtu.be/AsNTdd_-nfs?si=w04yBHiG4SYWsawd ](https://youtu.be/AsNTdd_-nfs?si=w04yBHiG4SYWsawd "Videó")
