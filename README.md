@@ -23,3 +23,7 @@ Mozgásérzékelővel vezérelt relé, RFID azonosítással
 
 ## Adatbázis szerkezet
 ![image](https://github.com/user-attachments/assets/da1cd594-2b0a-401b-8a66-653c94f915b1)
+
+## Videós bemutató
+
+[link text]([https://youtu.be/AsNTdd_-nfs?si=w04yBHiG4SYWsawd ](https://youtu.be/AsNTdd_-nfs?si=w04yBHiG4SYWsawd "Videó")
