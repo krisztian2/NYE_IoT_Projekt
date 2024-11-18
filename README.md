@@ -20,3 +20,6 @@ Mozgásérzékelővel vezérelt relé, RFID azonosítással
 
 ## Node-Red Flow
 ![image](https://github.com/user-attachments/assets/26e93da7-75eb-4b37-96cf-60df83db14b2)
+
+## Adatbázis szerkezet
+![image](https://github.com/user-attachments/assets/da1cd594-2b0a-401b-8a66-653c94f915b1)
